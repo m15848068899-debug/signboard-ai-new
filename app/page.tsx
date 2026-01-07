@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
+// 注意：这里使用的是新版官方插件的引用方式
 import { fal } from "@fal-ai/client";
-```[[2](https://www.google.com/url?sa=E&q=https%3A%2F%2Fvertexaisearch.cloud.google.com%2Fgrounding-api-redirect%2FAUZIYQEfdwvnluoRTBjkwOXymE4ywfb9NAvBQbi9C3A4aeoaWZc9AiSSkVurVzWLIHn_w2NFCPN3KKP9SkrnTxE53Jh14ZJIXUTJAgLhjmLyAl-8RWj7H6wUgRa3qAmZtYo3Jvn73YlCPJ66Ziv6IBHbtgNdBSQ%3D)][[4](https://www.google.com/url?sa=E&q=https%3A%2F%2Fvertexaisearch.cloud.google.com%2Fgrounding-api-redirect%2FAUZIYQEvaJvfBRWGReLNqpqMz6IuampMZeFHHn9-oL6_AN3dEyKdb-xf2N5y8BvJS07ly9j-5SgVJPgDpVI49Jd2sarrUYQEPNaSCrHJDl8a-aHRVkYOjieXrMaymh_PqoHetIK88UYmgi6ZqM_YiXqASD35C02ed1Q_4-E%3D)][[5](https://www.google.com/url?sa=E&q=https%3A%2F%2Fvertexaisearch.cloud.google.com%2Fgrounding-api-redirect%2FAUZIYQHfaIy52G-NE4Qkfj80Eb4tyChwXPI8XFvxxpTM9geRSjT55giwjZTWRGEDqJLtu8K3LOOGY4k0WK_fX5YRlt8VKqjIqjJ_cl9W-D6MuUzHOhHqdLX9DYaOZdLG8_p_V-Q%3D)][[6](https://www.google.com/url?sa=E&q=https%3A%2F%2Fvertexaisearch.cloud.google.com%2Fgrounding-api-redirect%2FAUZIYQHcgzki9tGn3fjuyp5Ok5r2BLJGOgsTHZF5E0LFX2a4ahZVSTsbqMcfG_IKJNXVP2G7uC9TgKj06OPxOiOn9wcF3f6dzFZnEKR9Nq3vC9KBZ_WsCt75Tu9n9n4eC4tJ)]
 
-// 配置 Fal.ai
+// 配置代理地址
 fal.config({
   proxyUrl: "/api/generate",
 });
@@ -13,28 +13,27 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState<string | null>(null);
 
-  // 表单数据：现在包含具体的长宽尺寸
+  // 表单数据
   const [formData, setFormData] = useState({
     shopName: "BEI JI BIAO",
-    type: "technology_company", // 默认改成科技公司演示
+    type: "technology_company",
     style: "minimalist",
     color: "white_wood",
-    width: "4.5", // 默认长度
-    height: "1.2", // 默认高度
+    width: "4.5",
+    height: "1.2",
   });
 
-  // 辅助函数：根据用户输入的尺寸，自动计算最适合 AI 的图片比例
+  // 辅助函数：计算比例
   const getAspectRatio = (w: string, h: string) => {
     const width = parseFloat(w);
     const height = parseFloat(h);
     const ratio = width / height;
 
-    // Flux 模型通常支持以下标准比例
-    if (ratio >= 2.2) return "landscape_21_9"; // 超长
-    if (ratio >= 1.6) return "landscape_16_9"; // 标准宽屏
-    if (ratio >= 1.2) return "landscape_4_3";  // 略宽
-    if (ratio >= 0.9) return "square_hd";      // 正方形
-    return "portrait_4_3";                     // 竖版
+    if (ratio >= 2.2) return "landscape_21_9";
+    if (ratio >= 1.6) return "landscape_16_9";
+    if (ratio >= 1.2) return "landscape_4_3";
+    if (ratio >= 0.9) return "square_hd";
+    return "portrait_4_3";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,11 +42,9 @@ export default function Home() {
     setImage(null);
 
     try {
-      // 1. 计算最佳比例字符串
       const sizeRatio = getAspectRatio(formData.width, formData.height);
       
-      // 2. 构建 Prompt
-      // 如果选了科技或商务，提示词会自动调整得更专业
+      // 重点修复：这里使用的是反引号 ` (Esc键下面那个)，不是单引号 '
       const prompt = `A realistic street view of a ${formData.type} storefront signboard. 
       The signboard says "${formData.shopName}" in clear, professional 3D typography.
       The storefront dimensions are roughly ${formData.width}m wide by ${formData.height}m high.
@@ -56,11 +53,11 @@ export default function Home() {
       Context: Mounted on a modern building facade, outdoors, sunny day.
       Quality: 8k resolution, architectural photography, photorealistic, cinematic lighting, sharp focus.`;
 
-      // 3. 调用 AI
+      // 调用新版 SDK
       const result: any = await fal.subscribe("fal-ai/flux/schnell", {
         input: {
           prompt: prompt,
-          image_size: sizeRatio, // 动态使用计算出的比例
+          image_size: sizeRatio,
           num_inference_steps: 4,
           enable_safety_checker: false,
         },
@@ -72,7 +69,10 @@ export default function Home() {
         },
       });
 
-      if (result.images && result.images.length > 0) {
+      if (result.data && result.data.images && result.data.images.length > 0) {
+        setImage(result.data.images[0].url);
+      } else if (result.images && result.images.length > 0) {
+        // 兼容旧返回格式
         setImage(result.images[0].url);
       }
     } catch (error) {
@@ -85,17 +85,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center py-10 px-4">
-      {/* 标题修改 */}
       <h1 className="text-4xl font-extrabold text-slate-900 mb-2 tracking-tight">北极标广告</h1>
       <p className="text-lg text-slate-500 mb-8 font-light">AI 门头设计生成系统</p>
 
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
         {/* 左侧：输入表单 */}
         <div className="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 h-fit">
           <form onSubmit={handleSubmit} className="space-y-5">
-            
-            {/* 店铺名称 */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">店铺/公司名称 (建议拼音/英文)</label>
               <input
@@ -108,7 +104,6 @@ export default function Home() {
               />
             </div>
 
-            {/* 店铺类型：增加了商务类选项 */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">场所类型</label>
               <select
@@ -134,7 +129,6 @@ export default function Home() {
               </select>
             </div>
 
-            {/* 尺寸输入：改为具体的长宽 */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">长度 (米)</label>
@@ -159,7 +153,6 @@ export default function Home() {
             </div>
             <p className="text-xs text-slate-400">系统将根据长宽自动调整图片比例</p>
 
-            {/* 风格 */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">设计风格</label>
               <select
@@ -177,7 +170,6 @@ export default function Home() {
               </select>
             </div>
 
-            {/* 颜色 */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">色系搭配</label>
               <select
@@ -211,7 +203,6 @@ export default function Home() {
           <div className="flex-1 flex items-center justify-center bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 min-h-[500px] overflow-hidden relative">
             {image ? (
               <div className="relative w-full h-full flex items-center justify-center">
-                 {/* 图片展示 */}
                 <img 
                   src={image} 
                   alt="AI Generated Signboard" 
@@ -237,7 +228,6 @@ export default function Home() {
             )}
           </div>
 
-          {/* 下载按钮区域 */}
           {image && (
             <div className="mt-6 flex justify-between items-center bg-slate-50 p-4 rounded-lg">
               <div>
@@ -255,7 +245,6 @@ export default function Home() {
             </div>
           )}
         </div>
-
       </div>
     </div>
   );
