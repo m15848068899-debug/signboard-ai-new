@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import * as fal from "@fal-ai/serverless-client";
+import { fal } from "@fal-ai/client";
+```[[2](https://www.google.com/url?sa=E&q=https%3A%2F%2Fvertexaisearch.cloud.google.com%2Fgrounding-api-redirect%2FAUZIYQEfdwvnluoRTBjkwOXymE4ywfb9NAvBQbi9C3A4aeoaWZc9AiSSkVurVzWLIHn_w2NFCPN3KKP9SkrnTxE53Jh14ZJIXUTJAgLhjmLyAl-8RWj7H6wUgRa3qAmZtYo3Jvn73YlCPJ66Ziv6IBHbtgNdBSQ%3D)][[4](https://www.google.com/url?sa=E&q=https%3A%2F%2Fvertexaisearch.cloud.google.com%2Fgrounding-api-redirect%2FAUZIYQEvaJvfBRWGReLNqpqMz6IuampMZeFHHn9-oL6_AN3dEyKdb-xf2N5y8BvJS07ly9j-5SgVJPgDpVI49Jd2sarrUYQEPNaSCrHJDl8a-aHRVkYOjieXrMaymh_PqoHetIK88UYmgi6ZqM_YiXqASD35C02ed1Q_4-E%3D)][[5](https://www.google.com/url?sa=E&q=https%3A%2F%2Fvertexaisearch.cloud.google.com%2Fgrounding-api-redirect%2FAUZIYQHfaIy52G-NE4Qkfj80Eb4tyChwXPI8XFvxxpTM9geRSjT55giwjZTWRGEDqJLtu8K3LOOGY4k0WK_fX5YRlt8VKqjIqjJ_cl9W-D6MuUzHOhHqdLX9DYaOZdLG8_p_V-Q%3D)][[6](https://www.google.com/url?sa=E&q=https%3A%2F%2Fvertexaisearch.cloud.google.com%2Fgrounding-api-redirect%2FAUZIYQHcgzki9tGn3fjuyp5Ok5r2BLJGOgsTHZF5E0LFX2a4ahZVSTsbqMcfG_IKJNXVP2G7uC9TgKj06OPxOiOn9wcF3f6dzFZnEKR9Nq3vC9KBZ_WsCt75Tu9n9n4eC4tJ)]
 
 // 配置 Fal.ai
 fal.config({
