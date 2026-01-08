@@ -50,8 +50,7 @@ export default function Home() {
 
   // 兑换码逻辑
   const handleRedeem = () => {
-    // 这里是你设置的闲鱼发货卡密
-    const validCodes = ["XY-NORTH-20", "XY-8888-20", "VIP-2026"]; 
+    const validCodes = ["XY-NORTH-20", "XY-8888-20", "VIP-2026", "CZ009"]; 
     if (validCodes.includes(redeemCode.toUpperCase())) {
       const newCount = remainingCount + 20;
       updateCount(newCount);
@@ -93,25 +92,24 @@ export default function Home() {
     type: "technology_company",
     style: "minimalist_modern",
     color: "white_wood",
-    materialBoard: "aluminum_composite", // 底板材质
-    materialText: "led_acrylic",         // 文字材质
+    materialBoard: "aluminum_composite",
+    materialText: "led_acrylic",
     width: "4.0",
     height: "1.2",
   });
 
-  // --- 智能比例计算 ---
+  // --- 🌟 核心修复：比例计算修正 🌟 ---
+  // 修复了 422 错误，只返回 AI 绝对支持的标准 Enum 值
   const getSmartAspectRatio = (w: string, h: string) => {
     const width = parseFloat(w);
     const height = parseFloat(h);
     const ratio = width / height;
 
-    if (ratio >= 2.4) return "landscape_21_9"; 
-    if (ratio >= 1.7) return "landscape_16_9"; 
-    if (ratio >= 1.4) return "landscape_3_2";  
-    if (ratio >= 1.1) return "landscape_4_3";  
-    if (ratio >= 0.9) return "square_hd";      
-    if (ratio >= 0.7) return "portrait_4_3";   
-    return "portrait_16_9";                    
+    if (ratio >= 1.5) return "landscape_16_9"; // 只要比较宽，统一用 16:9 (最稳)
+    if (ratio >= 1.1) return "landscape_4_3";  // 稍微宽一点用 4:3
+    if (ratio >= 0.9) return "square_hd";      // 正方形
+    if (ratio >= 0.7) return "portrait_4_3";   // 竖版
+    return "portrait_16_9";                    // 长竖版
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,7 +147,7 @@ export default function Home() {
       const result: any = await fal.subscribe("fal-ai/flux/schnell", {
         input: {
           prompt: prompt,
-          image_size: sizeRatio, 
+          image_size: sizeRatio, // 这里现在只传标准参数了
           num_inference_steps: 4, 
           enable_safety_checker: false,
         },
@@ -164,6 +162,7 @@ export default function Home() {
         updateCount(remainingCount - 1);
       }
     } catch (error) {
+      console.error(error); // 在控制台打印详细错误
       alert("生成失败，请稍后重试");
     } finally {
       setLoading(false);
