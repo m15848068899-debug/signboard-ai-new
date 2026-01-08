@@ -7,7 +7,7 @@ export async function POST(req: Request) {
     // 这里填你刚才获取的 WxPusher 信息
     // 建议以后放到环境变量里，现在为了方便直接填
     const APP_TOKEN = "AT_A5n9JrcOrq4PaF4Om7m6iDE3RyUcFlDI"; // 替换成你的 APP_TOKEN
-    const MY_UID = "UID_tBgrGzEC0FzpENFu4gub5NYTqVvz";   // 替换成你的 UID
+    const MY_UID = "UID_zOZTyreNlpn1NLGj2MOohzUB3Yek";   // 替换成你的 UID
 
     // 发送请求给 WxPusher
     const res = await fetch("https://wxpusher.zjiecode.com/api/send/message", {
