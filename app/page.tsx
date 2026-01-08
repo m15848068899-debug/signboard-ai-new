@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-// 注意：这里使用的是新版官方插件的引用方式
 import { fal } from "@fal-ai/client";
 
-// 配置代理地址
 fal.config({
   proxyUrl: "/api/generate",
 });
@@ -13,7 +11,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState<string | null>(null);
 
-  // 表单数据
   const [formData, setFormData] = useState({
     shopName: "BEI JI BIAO",
     type: "technology_company",
@@ -23,17 +20,16 @@ export default function Home() {
     height: "1.2",
   });
 
-  // 辅助函数：计算比例
+  // 修复点：Flux 模型只支持标准 enum，不支持自定义的 landscape_21_9
+  // 我们这里把超长图统一映射为 landscape_16_9，虽然比例没那么长，但能保证生成成功
   const getAspectRatio = (w: string, h: string) => {
     const width = parseFloat(w);
     const height = parseFloat(h);
     const ratio = width / height;
 
-    if (ratio >= 2.2) return "landscape_21_9";
-    if (ratio >= 1.6) return "landscape_16_9";
-    if (ratio >= 1.2) return "landscape_4_3";
-    if (ratio >= 0.9) return "square_hd";
-    return "portrait_4_3";
+    if (ratio > 1.2) return "landscape_16_9"; // 横版统统用 16:9
+    if (ratio < 0.8) return "portrait_16_9";  // 竖版统统用 16:9
+    return "square_hd";                       // 其他都用正方形
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,7 +40,6 @@ export default function Home() {
     try {
       const sizeRatio = getAspectRatio(formData.width, formData.height);
       
-      // 重点修复：这里使用的是反引号 ` (Esc键下面那个)，不是单引号 '
       const prompt = `A realistic street view of a ${formData.type} storefront signboard. 
       The signboard says "${formData.shopName}" in clear, professional 3D typography.
       The storefront dimensions are roughly ${formData.width}m wide by ${formData.height}m high.
@@ -53,11 +48,11 @@ export default function Home() {
       Context: Mounted on a modern building facade, outdoors, sunny day.
       Quality: 8k resolution, architectural photography, photorealistic, cinematic lighting, sharp focus.`;
 
-      // 调用新版 SDK
+      // 使用 Flux Schnell 模型
       const result: any = await fal.subscribe("fal-ai/flux/schnell", {
         input: {
           prompt: prompt,
-          image_size: sizeRatio,
+          image_size: sizeRatio, // 这里现在只传标准值了
           num_inference_steps: 4,
           enable_safety_checker: false,
         },
@@ -72,11 +67,10 @@ export default function Home() {
       if (result.data && result.data.images && result.data.images.length > 0) {
         setImage(result.data.images[0].url);
       } else if (result.images && result.images.length > 0) {
-        // 兼容旧返回格式
         setImage(result.images[0].url);
       }
     } catch (error) {
-      alert("生成失败，请检查网络或 Key 余额");
+      alert("生成失败，参数校验未通过，请重试");
       console.error(error);
     } finally {
       setLoading(false);
@@ -89,16 +83,15 @@ export default function Home() {
       <p className="text-lg text-slate-500 mb-8 font-light">AI 门头设计生成系统</p>
 
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* 左侧：输入表单 */}
+        {/* 左侧表单 */}
         <div className="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 h-fit">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">店铺/公司名称 (建议拼音/英文)</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1">店铺名称 (建议英文/拼音)</label>
               <input
                 type="text"
-                required
-                className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-slate-900"
-                placeholder="例如: HUAWEI / ALIBABA"
+                className="w-full p-3 border border-slate-200 rounded-lg text-slate-900"
+                placeholder="例如: HUAWEI"
                 value={formData.shopName}
                 onChange={(e) => setFormData({...formData, shopName: e.target.value})}
               />
@@ -111,21 +104,12 @@ export default function Home() {
                 value={formData.type}
                 onChange={(e) => setFormData({...formData, type: e.target.value})}
               >
-                <optgroup label="商业办公">
-                  <option value="corporate_office">公司企业 (Corporate Office)</option>
-                  <option value="technology_company">科技公司 (Tech Company)</option>
-                  <option value="business_center">商务中心 (Business Center)</option>
-                  <option value="creative_studio">创意工作室 (Creative Studio)</option>
-                </optgroup>
-                <optgroup label="实体店铺">
-                  <option value="coffee_shop">咖啡店 (Coffee Shop)</option>
-                  <option value="restaurant">餐饮饭店 (Restaurant)</option>
-                  <option value="clothing_store">服装店 (Clothing Store)</option>
-                  <option value="barber_shop">美发沙龙 (Hair Salon)</option>
-                  <option value="flower_shop">花店 (Flower Shop)</option>
-                  <option value="bakery">烘焙店 (Bakery)</option>
-                  <option value="convenience_store">便利店 (Convenience Store)</option>
-                </optgroup>
+                <option value="technology_company">科技公司</option>
+                <option value="corporate_office">公司企业</option>
+                <option value="coffee_shop">咖啡店</option>
+                <option value="restaurant">餐饮</option>
+                <option value="clothing_store">服装店</option>
+                <option value="flower_shop">花店</option>
               </select>
             </div>
 
@@ -151,7 +135,6 @@ export default function Home() {
                 />
               </div>
             </div>
-            <p className="text-xs text-slate-400">系统将根据长宽自动调整图片比例</p>
 
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">设计风格</label>
@@ -160,13 +143,11 @@ export default function Home() {
                 value={formData.style}
                 onChange={(e) => setFormData({...formData, style: e.target.value})}
               >
-                <option value="minimalist_modern">现代简约 (Modern)</option>
-                <option value="futuristic_tech">未来科技感 (Futuristic Tech)</option>
-                <option value="professional_business">高端商务 (Professional)</option>
-                <option value="cyberpunk_neon">赛博朋克 (Cyberpunk)</option>
-                <option value="industrial_loft">工业风 (Industrial)</option>
-                <option value="luxury_classic">欧式轻奢 (Luxury)</option>
-                <option value="chinese_retro">新中式 (Chinese Retro)</option>
+                <option value="minimalist_modern">现代简约</option>
+                <option value="cyberpunk_neon">赛博朋克</option>
+                <option value="industrial_loft">工业风</option>
+                <option value="luxury_classic">欧式轻奢</option>
+                <option value="chinese_retro">新中式</option>
               </select>
             </div>
 
@@ -177,72 +158,36 @@ export default function Home() {
                 value={formData.color}
                 onChange={(e) => setFormData({...formData, color: e.target.value})}
               >
-                <option value="blue_silver_glass">科技蓝 + 银色 + 玻璃</option>
-                <option value="black_gold_metal">黑金 + 金属质感</option>
-                <option value="white_grey_concrete">纯白 + 灰色 + 水泥</option>
-                <option value="wood_warm_light">原木 + 暖光</option>
-                <option value="red_gold">中国红 + 金色</option>
-                <option value="green_nature">生态绿 + 白色</option>
+                <option value="blue_silver_glass">科技蓝+银色</option>
+                <option value="black_gold_metal">黑金+金属</option>
+                <option value="white_wood">原木+白</option>
+                <option value="red_gold">红+金</option>
               </select>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-4 rounded-xl text-white font-bold text-lg shadow-md transition-all transform hover:scale-[1.02] ${
-                loading ? "bg-slate-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+              className={`w-full py-4 rounded-xl text-white font-bold text-lg shadow-md transition-all ${
+                loading ? "bg-slate-400" : "bg-blue-600 hover:bg-blue-700"
               }`}
             >
-              {loading ? "AI 正在设计中..." : "生成门头效果图"}
+              {loading ? "设计生成中..." : "生成效果图"}
             </button>
           </form>
         </div>
 
-        {/* 右侧：结果展示 */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-xl border border-slate-100 flex flex-col">
-          <div className="flex-1 flex items-center justify-center bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 min-h-[500px] overflow-hidden relative">
-            {image ? (
-              <div className="relative w-full h-full flex items-center justify-center">
-                <img 
-                  src={image} 
-                  alt="AI Generated Signboard" 
-                  className="max-w-full max-h-full object-contain shadow-2xl rounded-lg" 
-                />
-              </div>
-            ) : (
-              <div className="text-center text-slate-400">
-                {loading ? (
-                  <div className="flex flex-col items-center animate-pulse">
-                    <div className="text-5xl mb-4">🏗️</div>
-                    <p className="text-lg font-medium">正在根据尺寸建模...</p>
-                    <p className="text-sm">解析 prompt: {formData.type} / {formData.width}m x {formData.height}m</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="text-6xl mb-4 opacity-50">🖼️</div>
-                    <p className="text-xl font-medium text-slate-500">等待设计指令</p>
-                    <p className="text-sm mt-2">在左侧输入参数，AI 将为您生成专属方案</p>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {image && (
-            <div className="mt-6 flex justify-between items-center bg-slate-50 p-4 rounded-lg">
-              <div>
-                <p className="font-bold text-slate-700">设计完成</p>
-                <p className="text-xs text-slate-500">尺寸比例参考: {formData.width}m x {formData.height}m</p>
-              </div>
-              <a 
-                href={image} 
-                download={`beijibiao_${formData.shopName}.jpg`} 
-                target="_blank"
-                className="px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition shadow-sm flex items-center gap-2"
-              >
-                <span>⬇️</span> 下载高清原图
-              </a>
+        {/* 右侧展示 */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-xl border border-slate-100 min-h-[500px] flex items-center justify-center relative">
+          {image ? (
+            <div className="flex flex-col items-center w-full">
+              <img src={image} alt="Result" className="w-full rounded-lg shadow-2xl mb-4" />
+              <a href={image} download className="px-6 py-2 bg-green-600 text-white rounded font-bold">下载原图</a>
             </div>
+          ) : (
+             <div className="text-slate-400 text-center">
+               {loading ? "正在绘制..." : "等待生成"}
+             </div>
           )}
         </div>
       </div>
