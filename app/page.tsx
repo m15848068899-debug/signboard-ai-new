@@ -2,21 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { fal } from "@fal-ai/client";
-import { Send, Diamond, Download, Gift, MessageSquare, Image as ImageIcon, Sparkles, ShoppingBag, ArrowRight, Layers, Type, User, LogOut, Phone } from "lucide-react";
+import { Send, Diamond, Download, Gift, MessageSquare, Image as ImageIcon, Sparkles, ShoppingBag, ArrowRight, Layers, Type, User, LogOut, Phone, ScanLine } from "lucide-react";
 
 fal.config({
   proxyUrl: "/api/generate",
 });
 
 export default function Home() {
-  // --- 核心状态 ---
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState<string | null>(null);
   
   // --- 用户系统状态 ---
-  const [userPhone, setUserPhone] = useState(""); // 当前登录手机号
+  const [userPhone, setUserPhone] = useState(""); 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [credits, setCredits] = useState(0); // 剩余次数
+  const [credits, setCredits] = useState(0); 
   
   // --- 弹窗控制 ---
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -30,39 +29,28 @@ export default function Home() {
   const [feedbackMsg, setFeedbackMsg] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
 
-  // --- 初始化：检查是否已登录 ---
+  // 初始化
   useEffect(() => {
     const savedPhone = localStorage.getItem("currentUser");
-    if (savedPhone) {
-      loginUser(savedPhone);
-    }
+    if (savedPhone) loginUser(savedPhone);
   }, []);
 
-  // --- 登录逻辑 (模拟数据库) ---
   const loginUser = (phone: string) => {
-    // 1. 设置当前用户
     setUserPhone(phone);
     setIsLoggedIn(true);
     localStorage.setItem("currentUser", phone);
     setShowLoginModal(false);
-
-    // 2. 读取该用户的余额 (如果没记录，送3次新手礼包)
     const userCredits = localStorage.getItem(`credits_${phone}`);
     if (userCredits === null) {
-      // 新用户
       localStorage.setItem(`credits_${phone}`, "3");
       setCredits(3);
     } else {
-      // 老用户
       setCredits(parseInt(userCredits));
     }
   };
 
   const handleLoginSubmit = () => {
-    if (!/^1[3-9]\d{9}$/.test(loginInput)) {
-      alert("请输入正确的11位手机号");
-      return;
-    }
+    if (!/^1[3-9]\d{9}$/.test(loginInput)) return alert("请输入正确的11位手机号");
     loginUser(loginInput);
   };
 
@@ -74,33 +62,21 @@ export default function Home() {
     setImage(null);
   };
 
-  // --- 扣费/充值逻辑 ---
   const updateCredits = (newVal: number) => {
     setCredits(newVal);
-    // 数据持久化：保存在该手机号名下
     localStorage.setItem(`credits_${userPhone}`, newVal.toString());
   };
 
   const handleRedeem = () => {
-    // 闲鱼卡密库
     const validCodes = ["XY-NORTH-20", "XY-8888-20", "VIP-2026", "CZ009"]; 
-    
-    // 检查卡密是否被使用过 (简单防刷)
     const usedCodes = JSON.parse(localStorage.getItem("usedCodes") || "[]");
-    
-    if (usedCodes.includes(redeemCode)) {
-      alert("❌ 该卡密已被使用！");
-      return;
-    }
+    if (usedCodes.includes(redeemCode)) return alert("❌ 该卡密已被使用！");
 
     if (validCodes.includes(redeemCode.toUpperCase())) {
       const newCount = credits + 20;
       updateCredits(newCount);
-      
-      // 记录已使用
       usedCodes.push(redeemCode);
       localStorage.setItem("usedCodes", JSON.stringify(usedCodes));
-      
       setShowRechargeModal(false);
       setRedeemCode("");
       alert(`🎉 充值成功！当前余额：${newCount} 次`);
@@ -118,67 +94,64 @@ export default function Home() {
     materialBoard: "aluminum_composite", 
     materialText: "led_acrylic",
     width: "4.0",
-    height: "1.2",
+    height: "1.0",
   });
 
-  // --- 修复1: 比例计算 (保持不变，这个逻辑是对的) ---
-  const getSmartAspectRatio = (w: string, h: string) => {
+  // --- 🌟 核心升级：根据尺寸生成形状描述词 (Prompt Logic) ---
+  const getSignboardShapeDescription = (w: string, h: string) => {
     const width = parseFloat(w);
     const height = parseFloat(h);
     const ratio = width / height;
-    if (ratio >= 2.0) return "landscape_16_9"; // 长门头用宽屏
-    if (ratio >= 1.2) return "landscape_4_3";
-    if (ratio >= 0.9) return "square_hd";
-    return "portrait_4_3";
+
+    // 告诉 AI 具体的形状感觉
+    if (ratio >= 4.0) return "extremely long and thin horizontal signboard strip";
+    if (ratio >= 2.5) return "panoramic wide rectangular signboard";
+    if (ratio >= 1.6) return "standard rectangular signboard";
+    if (ratio >= 1.2) return "bulky rectangular signboard";
+    if (ratio >= 0.9) return "square box signboard";
+    return "vertical tall signboard";
   };
 
-  // --- 修复2: 提示词大改 (解决“太近”和“比例不对”的问题) ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // 强制登录拦截
-    if (!isLoggedIn) {
-      setShowLoginModal(true);
-      return;
-    }
-    // 余额拦截
-    if (credits <= 0) {
-      setShowRechargeModal(true);
-      return;
-    }
+    if (!isLoggedIn) return setShowLoginModal(true);
+    if (credits <= 0) return setShowRechargeModal(true);
 
     setLoading(true);
     setImage(null);
 
     try {
-      const sizeRatio = getSmartAspectRatio(formData.width, formData.height);
+      // 1. 获取形状描述词
+      const shapeDesc = getSignboardShapeDescription(formData.width, formData.height);
       
-      // 🌟 核心修改：提示词强调 "Full View" (全景) 和 "Street Context" (街景)
+      // 2. 提示词工程升级：
+      // - 强制使用 "landscape_16_9" 画布
+      // - 使用 shapeDesc 控制画面的牌匾形状
+      // - 增加 "Wide angle", "Street view", "Establishing shot" 强制拉远镜头
       const prompt = `
-        Wide-angle street view photography of a storefront facade.
-        SHOW THE ENTIRE STOREFRONT ENTRANCE, not just the text.
-        Zoom out to show the building context.
+        Wide-angle street photography, Establishing shot.
+        Full view of the entire ${formData.type} storefront facade from the street.
+        The image MUST show the entrance, the pavement, and the building context.
         
         The signboard is mounted above the entrance.
-        Signboard Shape: Rectangular, dimensions approx ${formData.width}m wide x ${formData.height}m high.
-        Signboard Text: "${formData.shopName}" (Bold, 3D, legible).
+        Signboard Shape: ${shapeDesc}.
+        Signboard Text: "${formData.shopName}" (Bold, legible, 3D render).
         
-        Store Type: ${formData.type}.
-        Design Style: ${formData.style}.
+        Store Design: ${formData.style}.
         Color Theme: ${formData.color}.
         
-        Material Details:
-        - Board Background: ${formData.materialBoard}.
-        - Text Material: ${formData.materialText}.
+        Detailed Materials:
+        - Backboard: ${formData.materialBoard} texture.
+        - Typography: ${formData.materialText} finish.
         
-        View: Front elevation, symmetrical, architectural photography, 8k resolution, photorealistic.
-        Lighting: Daytime, natural soft sunlight.
+        Camera: 24mm wide lens, taken from 10 meters away, straight-on front view.
+        Lighting: Natural daylight, soft shadows, 8k resolution.
       `;
 
       const result: any = await fal.subscribe("fal-ai/flux/schnell", {
         input: {
           prompt: prompt,
-          image_size: sizeRatio,
+          image_size: "landscape_16_9", // 🔒 强制锁定为 16:9
           num_inference_steps: 4, 
           enable_safety_checker: false,
         },
@@ -196,7 +169,6 @@ export default function Home() {
     }
   };
 
-  // --- 发送留言 (后端) ---
   const handleSendFeedback = async () => {
     if (!feedbackContact || !feedbackMsg) return alert("请填写完整信息");
     setSendingMsg(true);
@@ -223,7 +195,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 flex flex-col items-center py-6 px-4 font-sans text-slate-800">
       
-      {/* --- 顶部导航 (重构：包含登录信息) --- */}
+      {/* 顶部导航 */}
       <div className="w-full max-w-7xl flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white/80 backdrop-blur-md p-4 rounded-3xl border border-white/50 shadow-sm sticky top-2 z-40">
         <div className="flex items-center gap-3">
           <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg">
@@ -236,42 +208,25 @@ export default function Home() {
 
         <div className="flex gap-3 items-center">
           {isLoggedIn ? (
-            // 已登录状态
             <>
-              <div 
-                onClick={() => setShowRechargeModal(true)}
-                className="cursor-pointer flex items-center gap-2 bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-full hover:bg-indigo-100 transition"
-              >
+              <div onClick={() => setShowRechargeModal(true)} className="cursor-pointer flex items-center gap-2 bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-full hover:bg-indigo-100 transition">
                 <Diamond size={16} className="text-indigo-600" />
                 <span className="text-sm font-medium text-indigo-900">余额: <b className="text-xl ml-1">{credits}</b></span>
                 <div className="bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded-full ml-1">充值</div>
               </div>
-              
               <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-full text-sm font-bold text-slate-600">
                 <User size={16} />
                 <span>{userPhone}</span>
-                <button onClick={handleLogout} className="ml-2 p-1 hover:bg-slate-200 rounded-full" title="退出登录">
-                  <LogOut size={14} />
-                </button>
+                <button onClick={handleLogout} className="ml-2 p-1 hover:bg-slate-200 rounded-full"><LogOut size={14} /></button>
               </div>
             </>
           ) : (
-            // 未登录状态
-            <button 
-              onClick={() => setShowLoginModal(true)}
-              className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition shadow-lg font-bold"
-            >
-              <User size={18} />
-              <span>登录 / 注册</span>
+            <button onClick={() => setShowLoginModal(true)} className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition shadow-lg font-bold">
+              <User size={18} /><span>登录 / 注册</span>
             </button>
           )}
-
-          <button 
-            onClick={() => setShowFeedbackModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-full hover:bg-slate-50 transition font-bold"
-          >
-            <MessageSquare size={18} />
-            <span className="hidden sm:inline">售后</span>
+          <button onClick={() => setShowFeedbackModal(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-full hover:bg-slate-50 transition font-bold">
+            <MessageSquare size={18} /><span className="hidden sm:inline">售后</span>
           </button>
         </div>
       </div>
@@ -287,18 +242,28 @@ export default function Home() {
               <input type="text" className="w-full p-4 bg-slate-50 border-0 rounded-2xl text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none transition font-bold" placeholder="BEIJIBIAO" value={formData.shopName} onChange={handleNameChange} />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">牌匾长 (m)</label>
-                <input type="number" step="0.1" className="w-full p-3 bg-slate-50 border-0 rounded-xl text-sm" value={formData.width} onChange={(e) => setFormData({...formData, width: e.target.value})} />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">牌匾高 (m)</label>
-                <input type="number" step="0.1" className="w-full p-3 bg-slate-50 border-0 rounded-xl text-sm" value={formData.height} onChange={(e) => setFormData({...formData, height: e.target.value})} />
-              </div>
+            {/* 尺寸输入区域 - 增加视觉反馈提示 */}
+            <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
+                <div className="flex items-center gap-2 mb-3">
+                    <ScanLine size={16} className="text-indigo-500"/>
+                    <span className="text-xs font-bold text-indigo-900">门头尺寸设定</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <label className="text-[10px] font-bold text-slate-500 ml-1 mb-1 block">长度 (m)</label>
+                    <input type="number" step="0.1" className="w-full p-3 bg-white border-0 rounded-xl text-sm" value={formData.width} onChange={(e) => setFormData({...formData, width: e.target.value})} />
+                </div>
+                <div>
+                    <label className="text-[10px] font-bold text-slate-500 ml-1 mb-1 block">高度 (m)</label>
+                    <input type="number" step="0.1" className="w-full p-3 bg-white border-0 rounded-xl text-sm" value={formData.height} onChange={(e) => setFormData({...formData, height: e.target.value})} />
+                </div>
+                </div>
+                <p className="text-[10px] text-indigo-400 mt-2 text-center">
+                    AI 将生成固定 16:9 画幅，并在其中绘制<br/>
+                    <span className="font-bold">{(parseFloat(formData.width) / parseFloat(formData.height)).toFixed(1)} : 1</span> 比例的牌匾
+                </p>
             </div>
 
-            {/* --- 选项全面扩充 --- */}
             <div>
               <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">店铺类型 (15类)</label>
               <select className="w-full p-3 bg-slate-50 border-0 rounded-xl text-sm" value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})}>
@@ -320,28 +285,6 @@ export default function Home() {
               </select>
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">设计风格 (15种)</label>
-              <select className="w-full p-3 bg-slate-50 border-0 rounded-xl text-sm" value={formData.style} onChange={(e) => setFormData({...formData, style: e.target.value})}>
-                <option value="minimalist_modern">现代极简风</option>
-                <option value="cyberpunk_neon">赛博朋克/科技风</option>
-                <option value="industrial_loft">工业废墟风</option>
-                <option value="luxury_premium">轻奢黑金风</option>
-                <option value="chinese_new_retro">新中式国潮</option>
-                <option value="japanese_zen">日式原木/寂诧风</option>
-                <option value="american_retro">美式复古/波普</option>
-                <option value="nordic_ins">北欧INS风</option>
-                <option value="french_cream">法式奶油风</option>
-                <option value="hongkong_neon">港式复古霓虹</option>
-                <option value="cute_cartoon">可爱卡通/二次元</option>
-                <option value="bauhaus_geometric">包豪斯/几何风</option>
-                <option value="nature_organic">自然森系/绿植</option>
-                <option value="gothic_dark">暗黑哥特风</option>
-                <option value="art_deco_vintage">Art Deco/复古艺术</option>
-              </select>
-            </div>
-
-            {/* 材质细分 */}
             <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="flex items-center gap-1 text-[10px] font-bold text-slate-500 mb-1"><Layers size={10}/> 底板材质</label>
@@ -376,7 +319,28 @@ export default function Home() {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">色系搭配 (20种)</label>
+              <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">设计风格</label>
+              <select className="w-full p-3 bg-slate-50 border-0 rounded-xl text-sm" value={formData.style} onChange={(e) => setFormData({...formData, style: e.target.value})}>
+                <option value="minimalist_modern">现代极简风</option>
+                <option value="cyberpunk_neon">赛博朋克/科技风</option>
+                <option value="industrial_loft">工业废墟风</option>
+                <option value="luxury_premium">轻奢黑金风</option>
+                <option value="chinese_new_retro">新中式国潮</option>
+                <option value="japanese_zen">日式原木/寂诧风</option>
+                <option value="american_retro">美式复古/波普</option>
+                <option value="nordic_ins">北欧INS风</option>
+                <option value="french_cream">法式奶油风</option>
+                <option value="hongkong_neon">港式复古霓虹</option>
+                <option value="cute_cartoon">可爱卡通/二次元</option>
+                <option value="bauhaus_geometric">包豪斯/几何风</option>
+                <option value="nature_organic">自然森系/绿植</option>
+                <option value="gothic_dark">暗黑哥特风</option>
+                <option value="art_deco_vintage">Art Deco/复古艺术</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">色系搭配</label>
               <select className="w-full p-3 bg-slate-50 border-0 rounded-xl text-sm" value={formData.color} onChange={(e) => setFormData({...formData, color: e.target.value})}>
                 <option value="white_and_wood">🤍 原木 + 暖白</option>
                 <option value="black_and_gold">🖤 黑金 + 暖光</option>
@@ -441,7 +405,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* --- 登录弹窗 (新增) --- */}
+      {/* 登录弹窗 */}
       {showLoginModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl relative animate-in zoom-in-95">
@@ -456,25 +420,16 @@ export default function Home() {
             <div className="space-y-4">
               <div className="flex items-center bg-slate-50 rounded-xl px-4 py-3 border border-slate-100 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 transition">
                 <Phone size={20} className="text-slate-400 mr-3" />
-                <input 
-                  type="tel" 
-                  placeholder="请输入手机号" 
-                  className="bg-transparent border-0 outline-none w-full text-slate-900 font-bold tracking-wider"
-                  value={loginInput}
-                  onChange={(e) => setLoginInput(e.target.value)}
-                  maxLength={11}
-                />
+                <input type="tel" placeholder="请输入手机号" className="bg-transparent border-0 outline-none w-full text-slate-900 font-bold tracking-wider" value={loginInput} onChange={(e) => setLoginInput(e.target.value)} maxLength={11} />
               </div>
-              <button onClick={handleLoginSubmit} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all">
-                立即登录
-              </button>
+              <button onClick={handleLoginSubmit} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all">立即登录</button>
               <p className="text-xs text-center text-slate-400">* 仅作为本地账号凭证，无需验证码</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- 充值弹窗 --- */}
+      {/* 充值弹窗 */}
       {showRechargeModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl relative animate-in zoom-in-95">
@@ -488,10 +443,10 @@ export default function Home() {
             </div>
             <div className="space-y-6">
               <a href="https://m.tb.cn/h.7RH42eA?tk=nAb7UcRw7ed" target="_blank" className="group relative flex items-center justify-between p-4 bg-[#ffda44] hover:bg-[#ffcd00] rounded-xl shadow-lg shadow-yellow-100 transition-all hover:-translate-y-1 cursor-pointer">
-                <div className="flex items-center gap-3"><div className="bg-white/30 p-2 rounded-lg text-slate-900"><ShoppingBag size={24} /></div><div className="text-left"><div className="text-base font-extrabold text-slate-900">去闲鱼购买</div><div className="text-xs text-slate-800/80">9.9元 / 20次 (自动发货)</div></div></div><div className="bg-white/20 p-2 rounded-full"><ArrowRight size={18} className="text-slate-900" /></div>
+                <div className="flex items-center gap-3"><div className="bg-white/30 p-2 rounded-lg text-slate-900"><ShoppingBag size={24} /></div><div className="text-left"><div className="text-base font-extrabold text-slate-900">会员获取方式</div><div className="text-xs text-slate-800/80">点击跳转 闲鱼APP 购买</div></div></div><div className="bg-white/20 p-2 rounded-full"><ArrowRight size={18} className="text-slate-900" /></div>
               </a>
               <div className="flex gap-2">
-                <input type="text" placeholder="在此输入卡密兑换" className="flex-1 bg-slate-50 border-0 p-3 rounded-xl text-slate-900 uppercase font-mono tracking-widest outline-none" value={redeemCode} onChange={(e) => setRedeemCode(e.target.value)} />
+                <input type="text" placeholder="输入卡密" className="flex-1 bg-slate-50 border-0 p-3 rounded-xl text-slate-900 uppercase font-mono tracking-widest outline-none" value={redeemCode} onChange={(e) => setRedeemCode(e.target.value)} />
                 <button onClick={handleRedeem} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800">兑换</button>
               </div>
             </div>
@@ -499,7 +454,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* 售后弹窗 (保持不变) */}
+      {/* 售后弹窗 */}
       {showFeedbackModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl relative">
