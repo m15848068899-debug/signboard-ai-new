@@ -11,13 +11,12 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState<string | null>(null);
 
-  // 1. 新增了 material (材质) 字段
   const [formData, setFormData] = useState({
     shopName: "BEIJIBIAO",
     type: "technology_company",
     style: "minimalist_modern",
     color: "white_wood",
-    material: "acrylic_led", // 默认材质
+    material: "acrylic_led",
     width: "4.5",
     height: "1.2",
   });
@@ -39,11 +38,6 @@ export default function Home() {
     try {
       const sizeRatio = getAspectRatio(formData.width, formData.height);
       
-      // 2. 提示词大升级 (Prompt Engineering)
-      // 核心改动：
-      // - Front elevation view: 强制正面视角
-      // - Straight-on angle, no perspective distortion: 拒绝歪斜
-      // - 材质参数融入
       const prompt = `
         Architectural photography, Front elevation view of a ${formData.type} storefront facade.
         Straight-on angle, symmetrical composition, flat perspective, 90 degree view.
@@ -59,19 +53,17 @@ export default function Home() {
         Background: Clean building facade.
       `;
 
-     // 改回了 schnell (极速版)
+      // 这里已经确认切回了 schnell (极速版)，步数设为 4
       const result: any = await fal.subscribe("fal-ai/flux/schnell", {
         input: {
           prompt: prompt,
           image_size: sizeRatio,
-          num_inference_steps: 4, // 注意：Schnell 版本只需要 4 步，速度最快
+          num_inference_steps: 4, 
           enable_safety_checker: false,
         },
         logs: true,
         onQueueUpdate: (update) => {
-          if (update.status === "IN_PROGRESS") {
-            console.log(update.logs);
-          }
+          if (update.status === "IN_PROGRESS") console.log(update.logs);
         },
       });
 
@@ -88,6 +80,16 @@ export default function Home() {
     }
   };
 
+  // 处理输入变化，强制过滤非英文字符
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    // 正则表达式：只允许 英文字母、数字、空格、减号、点、逗号、&符号
+    // 如果输入了中文，test 就会返回 false，状态就不会更新，字就打不上去了
+    if (/^[a-zA-Z0-9\s\-_.,'&]*$/.test(val)) {
+      setFormData({ ...formData, shopName: val });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center py-10 px-4 font-sans">
       <h1 className="text-4xl font-extrabold text-slate-800 mb-2">北极标广告 AI 设计</h1>
@@ -95,26 +97,28 @@ export default function Home() {
 
       <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* 左侧控制面板 (占 4 列) */}
+        {/* 左侧控制面板 */}
         <div className="lg:col-span-4 bg-white p-6 rounded-2xl shadow-xl h-fit">
           <form onSubmit={handleSubmit} className="space-y-5">
             
-            {/* 店铺名称 */}
+            {/* 店铺名称 (已修改：限制只能输英文) */}
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">店铺名称</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1">店铺名称 (仅限英文/拼音)</label>
               <input
                 type="text"
                 className="w-full p-3 border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="建议: 拼音/英文 + 简单汉字"
+                placeholder="例如: BEIJIBIAO"
                 value={formData.shopName}
-                onChange={(e) => setFormData({...formData, shopName: e.target.value})}
+                onChange={handleNameChange} // 使用新的处理函数
               />
-              <p className="text-xs text-orange-500 mt-1">⚠️ 提示：AI生成复杂汉字可能会缺笔画，建议用 "拼音 BEIJIBIAO"</p>
+              <p className="text-xs text-orange-600 mt-2 bg-orange-50 p-2 rounded border border-orange-100">
+                ⚠️ 提示：因为 AI 生成汉字可能会缺笔画，所以名称请先用英文/拼音代替，后期设计时再自行替换为中文。
+              </p>
             </div>
 
-            {/* 场所类型 - 大幅扩充 */}
+            {/* 场所类型 */}
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">店铺类型 (已扩充)</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1">店铺类型</label>
               <select
                 className="w-full p-3 border border-slate-300 rounded-lg text-slate-900 bg-white"
                 value={formData.type}
@@ -175,9 +179,9 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 新增：材质选择 */}
+            {/* 材质 */}
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">✨ 门头材质 (新功能)</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1">✨ 门头材质</label>
               <select
                 className="w-full p-3 border border-slate-300 rounded-lg text-slate-900 bg-white"
                 value={formData.material}
@@ -204,12 +208,12 @@ export default function Home() {
               >
                 <option value="minimalist_modern">现代极简</option>
                 <option value="cyberpunk_future">赛博朋克/科技</option>
-                <option value="industrial_loft">工业废墟风</option>
+                <option value="industrial_loft">工业风</option>
                 <option value="luxury_elegant">轻奢高端</option>
                 <option value="chinese_traditional_retro">新中式国潮</option>
                 <option value="japanese_wabi_sabi">日式寂诧风</option>
                 <option value="american_pop_art">美式波普/复古</option>
-                <option value="cute_cartoon">可爱/卡通 (适合母婴宠物)</option>
+                <option value="cute_cartoon">可爱/卡通</option>
               </select>
             </div>
 
@@ -244,7 +248,7 @@ export default function Home() {
           </form>
         </div>
 
-        {/* 右侧展示区域 (占 8 列) */}
+        {/* 右侧展示区域 */}
         <div className="lg:col-span-8 flex flex-col gap-6">
           <div className="bg-white p-4 rounded-2xl shadow-xl border border-slate-100 flex-1 min-h-[600px] flex items-center justify-center relative overflow-hidden group">
             {image ? (
@@ -254,7 +258,6 @@ export default function Home() {
                   alt="Result" 
                   className="max-w-full max-h-[80vh] object-contain shadow-2xl rounded-lg" 
                 />
-                {/* 悬浮下载按钮 */}
                 <div className="absolute bottom-8 right-8 opacity-0 group-hover:opacity-100 transition-opacity">
                   <a href={image} download className="px-8 py-3 bg-green-600 text-white rounded-full font-bold shadow-lg hover:bg-green-700 flex items-center gap-2">
                     <span>⬇️</span> 下载原图
@@ -280,9 +283,8 @@ export default function Home() {
             )}
           </div>
           
-          {/* 底部提示栏 */}
           <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-blue-800 text-sm flex justify-between items-center">
-             <span>💡 提示：如果对文字不满意，可以尝试把店名改成【拼音】再试一次。</span>
+             <span>💡 提示：效果图生成后，可使用 Photoshop 或美图秀秀替换为正式中文店名。</span>
              <span className="font-bold">By 北极标广告</span>
           </div>
         </div>
