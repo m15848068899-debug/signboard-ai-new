@@ -59,12 +59,12 @@ export default function Home() {
         Background: Clean building facade.
       `;
 
-      // 这里改成了 fal-ai/flux/dev 模型，生成的汉字和细节会更好
-      const result: any = await fal.subscribe("fal-ai/flux/dev", {
+     // 改回了 schnell (极速版)
+      const result: any = await fal.subscribe("fal-ai/flux/schnell", {
         input: {
           prompt: prompt,
           image_size: sizeRatio,
-          num_inference_steps: 30, // 注意：dev 版本必须要把步数调高，否则图是糊的
+          num_inference_steps: 4, // 注意：Schnell 版本只需要 4 步，速度最快
           enable_safety_checker: false,
         },
         logs: true,
