@@ -97,16 +97,15 @@ export default function Home() {
     height: "1.2",
   });
 
-  // --- 🌟 核心升级：牌匾形状计算器 🌟 ---
+  // --- 形状计算器 ---
   const getSignboardShapePrompt = (w: string, h: string) => {
     const width = parseFloat(w);
     const height = parseFloat(h);
     const ratio = width / height;
 
-    // 根据长宽比，生成精准的形状描述词
     if (ratio >= 6.0) return "super wide and extremely thin strip signboard";
     if (ratio >= 4.0) return "very long and thin horizontal signboard";
-    if (ratio >= 2.5) return "wide panoramic rectangular signboard"; // 常用
+    if (ratio >= 2.5) return "wide panoramic rectangular signboard";
     if (ratio >= 1.5) return "standard rectangular signboard (16:9 ratio shape)";
     if (ratio >= 1.1) return "boxy rectangular signboard";
     if (ratio >= 0.9) return "perfectly square signboard";
@@ -123,44 +122,37 @@ export default function Home() {
     setImage(null);
 
     try {
-      // 1. 获取形状描述
       const shapeDesc = getSignboardShapePrompt(formData.width, formData.height);
       
-      // 2. 提示词工程 (Prompt Engineering)
-      // 逻辑：
-      // - 画布固定 16:9 (image_size: "landscape_16_9")
-      // - 牌匾形状由 shapeDesc 控制
-      // - 强制要求牌匾位于上方，门窗在下方
+      // 🌟 核心升级：超广角 + 强制地面 🌟
       const prompt = `
-        Architectural street photography, Wide-angle shot (16:9 Aspect Ratio).
+        Ultra-wide architectural photography, Full Street View.
+        Shot from across the street (Long distance shot).
         
-        SUBJECT: A storefront facade with a specifically shaped signboard.
+        COMPOSITION REQUIREMENTS:
+        1. Show the ENTIRE building facade from top to bottom.
+        2. MUST show the street pavement and ground level clearly at the bottom.
+        3. The storefront should be in the center, surrounded by the building wall.
         
-        SIGNBOARD SHAPE: ${shapeDesc}. 
-        The signboard dimensions are roughly ${formData.width} meters wide by ${formData.height} meters high.
-        It is mounted horizontally above the entrance.
+        SIGNBOARD DETAILS:
+        - Position: Mounted horizontally above the main entrance door.
+        - Shape: ${shapeDesc}.
+        - Text: "${formData.shopName}" (3D, Bold, Professional).
+        - Dimensions context: The signboard is ${formData.width}m wide and ${formData.height}m high relative to the door.
         
-        TEXT: "${formData.shopName}" (Bold, 3D, legible).
+        STORE DESIGN:
+        - Type: ${formData.type}.
+        - Style: ${formData.style}.
+        - Color Theme: ${formData.color}.
+        - Materials: ${formData.materialBoard} backboard with ${formData.materialText} text.
         
-        LOWER PART: Below the signboard is the shop entrance with glass doors and windows, scaled proportionally to the signboard width.
-        
-        Store Type: ${formData.type}.
-        Design Style: ${formData.style}.
-        Color Palette: ${formData.color}.
-        
-        Materials:
-        - Board: ${formData.materialBoard}.
-        - Text: ${formData.materialText}.
-        
-        View: Front elevation, straight-on view, showing the full shop front and some street context.
-        Lighting: Natural daylight, cinematic lighting, 8k resolution.
+        CAMERA SETTINGS: 14mm Ultra-Wide Lens, Eye-level view from the street, 8k resolution, Photorealistic.
       `;
 
       const result: any = await fal.subscribe("fal-ai/flux/schnell", {
         input: {
           prompt: prompt,
-          // 🔒 锁死画布比例为 16:9，这样图片永远是宽屏
-          image_size: "landscape_16_9", 
+          image_size: "landscape_16_9", // 保持固定宽屏
           num_inference_steps: 4, 
           enable_safety_checker: false,
         },
@@ -201,7 +193,6 @@ export default function Home() {
     if (/^[a-zA-Z0-9\s\-_.,'&]*$/.test(val)) setFormData({ ...formData, shopName: val });
   };
 
-  // 辅助显示比例
   const currentRatio = parseFloat(formData.width) && parseFloat(formData.height) 
     ? (parseFloat(formData.width) / parseFloat(formData.height)).toFixed(1) 
     : "0";
@@ -256,7 +247,7 @@ export default function Home() {
               <input type="text" className="w-full p-4 bg-slate-50 border-0 rounded-2xl text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none transition font-bold" placeholder="BEIJIBIAO" value={formData.shopName} onChange={handleNameChange} />
             </div>
 
-            {/* 尺寸输入 - 增加视觉提示 */}
+            {/* 尺寸输入 */}
             <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100 relative overflow-hidden">
                 <div className="flex items-center gap-2 mb-3 relative z-10">
                     <Ruler size={16} className="text-indigo-500"/>
@@ -272,14 +263,13 @@ export default function Home() {
                       <input type="number" step="0.1" className="w-full p-3 bg-white border-0 rounded-xl text-sm font-bold text-indigo-900" value={formData.height} onChange={(e) => setFormData({...formData, height: e.target.value})} />
                   </div>
                 </div>
-                {/* 比例提示 */}
                 <div className="mt-3 flex items-center justify-between text-[10px] text-indigo-400 bg-white/50 p-2 rounded-lg">
                    <span>牌匾长高比: <span className="font-bold text-indigo-600">{currentRatio} : 1</span></span>
                    <span>画布: 固定 16:9</span>
                 </div>
             </div>
 
-            {/* 选项扩充 */}
+            {/* 选项 */}
             <div>
               <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">店铺类型 (15类)</label>
               <select className="w-full p-3 bg-slate-50 border-0 rounded-xl text-sm" value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})}>
@@ -404,7 +394,7 @@ export default function Home() {
                 {loading ? (
                    <div className="flex flex-col items-center animate-bounce">
                       <Sparkles className="text-indigo-400 mb-4" size={48} />
-                      <p>AI 正在设计门头造型...</p>
+                      <p>AI 正在构建建筑立面...</p>
                    </div>
                 ) : (
                   <>
