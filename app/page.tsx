@@ -79,7 +79,7 @@ export default function Home() {
       localStorage.setItem("usedCodes", JSON.stringify(usedCodes));
       setShowRechargeModal(false);
       setRedeemCode("");
-      alert(`🎉 兑换成功！当前余额：${newCount} 次`);
+      alert(`🎉 充值成功！当前余额：${newCount} 次`);
     } else {
       alert("❌ 无效卡密，请去闲鱼购买");
     }
@@ -216,7 +216,6 @@ export default function Home() {
               <div onClick={() => setShowRechargeModal(true)} className="cursor-pointer flex items-center gap-2 bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-full hover:bg-indigo-100 transition">
                 <Diamond size={16} className="text-indigo-600" />
                 <span className="text-sm font-medium text-indigo-900">余额: <b className="text-xl ml-1">{credits}</b></span>
-                {/* 修改 1: 充值 -> 获取使用次数 */}
                 <div className="bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded-full ml-1 whitespace-nowrap">获取使用次数</div>
               </div>
               <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-full text-sm font-bold text-slate-600">
@@ -231,9 +230,7 @@ export default function Home() {
             </button>
           )}
           <button onClick={() => setShowFeedbackModal(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-full hover:bg-slate-50 transition font-bold">
-            <MessageSquare size={18} />
-            {/* 修改 2: 售后 -> 咨询 */}
-            <span className="hidden sm:inline">咨询</span>
+            <MessageSquare size={18} /><span className="hidden sm:inline">咨询</span>
           </button>
         </div>
       </div>
@@ -455,9 +452,9 @@ export default function Home() {
                 target="_blank" 
                 className="group relative flex items-center justify-between p-4 bg-[#ffda44] hover:bg-[#ffcd00] rounded-xl shadow-lg shadow-yellow-100 transition-all hover:-translate-y-1 cursor-pointer"
               >
-                <div className="flex items-center gap-3"><div className="bg-white/30 p-2 rounded-lg text-slate-900"><ShoppingBag size={24} /></div><div className="text-left"><div className="text-base font-extrabold text-slate-900">获取方式</div><div className="text-xs text-slate-800/80">点击跳转 闲鱼APP 购买</div></div></div><div className="bg-white/20 p-2 rounded-full"><ArrowRight size={18} className="text-slate-900" /></div>
+                <div className="flex items-center gap-3"><div className="bg-white/30 p-2 rounded-lg text-slate-900"><ShoppingBag size={24} /></div><div className="text-left"><div className="text-base font-extrabold text-slate-900">获取方式</div><div className="text-xs text-slate-800/80">点击跳转 闲鱼APP</div></div></div><div className="bg-white/20 p-2 rounded-full"><ArrowRight size={18} className="text-slate-900" /></div>
               </a>
-              <div className="relative"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div><div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-slate-400">购买后在此输入卡密</span></div></div>
+              <div className="relative"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div><div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-slate-400">在此输入卡密</span></div></div>
               <div className="flex gap-2">
                 <input type="text" placeholder="输入卡密" className="flex-1 bg-slate-50 border-0 p-3 rounded-xl text-slate-900 uppercase font-mono tracking-widest outline-none" value={redeemCode} onChange={(e) => setRedeemCode(e.target.value)} />
                 <button onClick={handleRedeem} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800">兑换</button>
@@ -467,7 +464,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* 售后/咨询弹窗 */}
+      {/* 售后弹窗 */}
       {showFeedbackModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl relative">
