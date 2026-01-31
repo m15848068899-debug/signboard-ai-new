@@ -479,6 +479,13 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* ICP备案号 */}
+      <div className="w-full mt-12 py-6 text-center">
+        <a href="http://beian.miit.gov.cn" target="_blank" rel="noreferrer noopener" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">
+          蒙ICP备2026000669号
+        </a>
+      </div>
     </div>
   );
 }
